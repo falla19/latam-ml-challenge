@@ -19,7 +19,7 @@ The second part of the **Software Engineer (ML & LLMs)** Application Challenge. 
 Additionally, the following method were added to model.py file:
 - **check_response**: Given the request predict the delay of the flights or return an error to raise an HttpException.
 
-The third part of the **Software Engineer (ML & LLMs)** Application Challenge. In this, you will have the dockerized app deployed on GCP. The Dockerfile is using python 3.9 to mitigate errors and additional building wheels on packages like numpy and pandas. This version allow us to save time building the image and deploying it to GCP Container Registry. The following URL is the app deployed: https://challenge-services-h5ewh4tzua-uc.a.run.app 
+The third part of the **Software Engineer (ML & LLMs)** Application Challenge. In this, you will have the dockerized app deployed on GCP. The Dockerfile is using python 3.9 to mitigate errors and additional building wheels on packages like numpy and pandas. This version allow us to save time building the image and deploying it to GCP Container Registry. The following URL is the app deployed: https://challenge-service-prod-333009412295.us-central1.run.app
 
 Running the stress test there were no fails and an average time of 700ms to resolve each request with 2487 requests at the time. The following shows the response time percentiles:
 
