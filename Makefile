@@ -24,7 +24,7 @@ install:		## Install dependencies
 	pip install -r requirements.txt
 
 STRESS_URL = https://challenge-services-h5ewh4tzua-uc.a.run.app
-STRESS_URL_DEV = https://challenge-service-dev-h5ewh4tzua-uc.a.run.app
+STRESS_URL_DEV = https://challenge-service-dev-333009412295.us-central1.run.app
 
 .PHONY: stress-test
 stress-test:
