@@ -34,20 +34,20 @@ jobs:
         id: auth
         uses: 'google-github-actions/auth@v1' 
         with:
-          credentials_json: '${{ secrets.GCP_SA_KEY }}'
+          credentials_json: '${{ secrets.SA_KEY }}'
           
       - name: Intall gcloud CLI
         uses: google-github-actions/setup-gcloud@v1
         with:
-          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          project_id: ${{ secrets.PROJECT_ID }}
 
       - name: Configure Docker credentials
         run: gcloud auth configure-docker us-central1-docker.pkg.dev
     
       - name: Build and push image
         run: |
-          docker build -f ${GITHUB_WORKSPACE}/Dockerfile -t us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.GCP_REGISTRY }}/challenge-image-dev:latest .
-          docker push us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.GCP_REGISTRY }}/challenge-image-dev:latest
+          docker build -f ${GITHUB_WORKSPACE}/Dockerfile -t us-central1-docker.pkg.dev/${{ secrets.PROJECT_ID }}/${{ secrets.REGISTRY }}/challenge-image-dev:latest .
+          docker push us-central1-docker.pkg.dev/${{ secrets.PROJECT_ID }}/${{ secrets.REGISTRY }}/challenge-image-dev:latest
 
   deploy:
     needs: build-and-push
@@ -60,19 +60,19 @@ jobs:
         id: auth
         uses: 'google-github-actions/auth@v1' 
         with:
-          credentials_json: '${{ secrets.GCP_SA_KEY }}'
+          credentials_json: '${{ secrets.SA_KEY }}'
 
       - name: Intall gcloud CLI
         uses: google-github-actions/setup-gcloud@v1
         with:
-          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          project_id: ${{ secrets.PROJECT_ID }}
 
       - name: Deploy to Cloud Run
         id: 'deploy'
         uses: 'google-github-actions/deploy-cloudrun@v1'
         with:
           service: 'challenge-service-dev'
-          image: 'us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.GCP_REGISTRY }}/challenge-image-dev:latest'
+          image: 'us-central1-docker.pkg.dev/${{ secrets.PROJECT_ID }}/${{ secrets.REGISTRY }}/challenge-image-dev:latest'
 
   test-deployed-image:
     needs: deploy
