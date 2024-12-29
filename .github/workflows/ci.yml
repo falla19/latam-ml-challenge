@@ -1,0 +1,128 @@
+name: 'Continuous Integration'
+
+on:
+  push:
+    branches:
+      - develop
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image
+        run: docker build -f ${GITHUB_WORKSPACE}/Dockerfile.tests -t test_image .
+
+      - name: Run tests on image
+        id: run-tests
+        run: |
+          docker run --rm test_image
+
+  build-and-push:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Google Auth
+        id: auth
+        uses: 'google-github-actions/auth@v1' 
+        with:
+          credentials_json: '${{ secrets.GCP_SA_KEY }}'
+          
+      - name: Intall gcloud CLI
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+
+      - name: Configure Docker credentials
+        run: gcloud auth configure-docker us-central1-docker.pkg.dev
+    
+      - name: Build and push image
+        run: |
+          docker build -f ${GITHUB_WORKSPACE}/Dockerfile -t us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.GCP_REGISTRY }}/challenge-image-dev:latest .
+          docker push us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.GCP_REGISTRY }}/challenge-image-dev:latest
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        
+      - name: Google Auth
+        id: auth
+        uses: 'google-github-actions/auth@v1' 
+        with:
+          credentials_json: '${{ secrets.GCP_SA_KEY }}'
+
+      - name: Intall gcloud CLI
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+
+      - name: Deploy to Cloud Run
+        id: 'deploy'
+        uses: 'google-github-actions/deploy-cloudrun@v1'
+        with:
+          service: 'challenge-service-dev'
+          image: 'us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.GCP_REGISTRY }}/challenge-image-dev:latest'
+
+  test-deployed-image:
+    needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image for test
+        run: |
+          docker build -f ${GITHUB_WORKSPACE}/Dockerfile.stress -t test_image .
+          docker run --rm test_image
+
+  create-release-branch:
+    needs: test-deployed-image
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Create release branch with tag name
+        run: |
+          git checkout -b release/${{ github.sha }}
+          git push --set-upstream origin release/${{ github.sha }}
+
+  checkout-release-branch:
+    needs: create-release-branch
+    permissions:
+      contents: write
+      pull-requests: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          ref: 'release/${{ github.sha }}'
+
+      - name: Create PR on main branche
+        uses: repo-sync/pull-request@v2
+        with:
+          source_branch: "release/${{ github.sha }}"
+          destination_branch: "main"
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          pr_title: "Merge release/${{ github.sha }} to main"
+          pr_body: "Merge release/${{ github.sha }} to main after successful CI pipeline"
+          pr_label: "automerge"
+
+      

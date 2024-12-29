@@ -1,0 +1,68 @@
+name: 'Continuous Delivery'
+
+on: 
+  pull_request:
+    types:
+      - closed
+    branches:
+      - 'main'
+
+jobs:
+  build-and-push:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          ref: 'main'
+
+      - name: Google Auth
+        id: auth
+        uses: 'google-github-actions/auth@v1' 
+        with:
+          credentials_json: '${{ secrets.GCP_SA_KEY }}'
+          
+      - name: Intall gcloud CLI
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+
+      - name: Configure Docker credentials
+        run: gcloud auth configure-docker us-central1-docker.pkg.dev
+    
+      - name: Build and push image
+        run: |
+          docker build -f ${GITHUB_WORKSPACE}/Dockerfile -t us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.GCP_REGISTRY }}/challenge-image-prod:latest .
+          docker push us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.GCP_REGISTRY }}/challenge-image-prod:latest
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          ref: 'main'
+
+      - name: Google Auth
+        id: auth
+        uses: 'google-github-actions/auth@v1' 
+        with:
+          credentials_json: '${{ secrets.GCP_SA_KEY }}'
+
+      - name: Intall gcloud CLI
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+
+      - name: Deploy to Cloud Run
+        id: 'deploy'
+        uses: 'google-github-actions/deploy-cloudrun@v1'
+        with:
+          service: 'challenge-service-prod'
+          image: 'us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.GCP_REGISTRY }}/challenge-image-prod:latest'
+
+      - name: 'Print URL'
+        run: echo ${{ steps.deploy.outputs.url }}
+

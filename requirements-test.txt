@@ -1,0 +1,12 @@
+locust~=1.6
+coverage~=5.5
+pytest~=6.2.5
+pytest-cov~=2.12.1
+mockito~=1.2.2
+
+# Update dependencies
+anyio~=3.6.2
+jinja2==2.11.3
+markupsafe==2.0.1
+itsdangerous==2.0.1
+Werkzeug==2.0.3

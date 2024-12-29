@@ -1,0 +1,17 @@
+# syntax=docker/dockerfile:1.2
+FROM python:3.9
+# put you docker configuration here
+WORKDIR /code
+
+# 
+COPY ./requirements.txt /code/requirements.txt
+COPY ./requirements-test.txt /code/requirements-test.txt
+
+# 
+RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
+RUN pip install --no-cache-dir --upgrade -r /code/requirements-test.txt
+
+# 
+COPY ./ /code/
+
+CMD ["make", "tests"]
